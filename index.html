@@ -263,7 +263,7 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
 .slide.active .grid-sub{animation:up .6s ease .4s both;}
 
 /* ───────── PROGRESS BAR ───────── */
-#bar{position:fixed;bottom:0;left:0;height:2px;background:#C9A96E;z-index:99;opacity:.45;transition:width .12s linear;}
+/* #bar removed for Fire Stick performance */
 
 /* ───────── KEYFRAMES ───────── */
 @keyframes up{from{opacity:0;transform:translateY(28px);}to{opacity:1;transform:translateY(0);}}
@@ -1056,7 +1056,6 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
   </div>
 
 </div>
-<div id="bar" style="width:0%"></div>
 
 <script>
 // ── 100 QUOTES POOL ──
@@ -1288,7 +1287,6 @@ function assignWisdomQuotes() {
 }
 
 const slides = document.querySelectorAll('.slide');
-const bar = document.getElementById('bar');
 let cur = 0, t0 = Date.now(), paused = false;
 
 assignWisdomQuotes();
@@ -1476,7 +1474,6 @@ function show(i) {
   cur = next;
   slides[cur].classList.add('active');
   t0 = Date.now();
-  bar.style.width = '0%';
   lazyLoad();
   if (slides[cur].classList.contains('s-qr')) {
     slides[cur].querySelector('.qr-tagline').textContent = nextQRTagline();
@@ -1487,18 +1484,13 @@ function show(i) {
   }
 }
 
-(function tick() {
-  try {
-    if (!paused) {
-      const d = dur(slides[cur]);
-      const pct = Math.min((Date.now() - t0) / d * 100, 100);
-      bar.style.width = pct + '%';
-      if (Date.now() - t0 >= d) {
-        try { show(cur + 1); }
-        catch (e) { console.error('show() error:', e); t0 = Date.now(); }
-      }
-    }
-  } catch (e) { console.error('tick() error:', e); }
+(function tick(){
+  if(!paused){
+    const s=slides[cur];
+    const d=dur(s);
+    const pct=Math.min((Date.now()-t0)/d*100,100);
+    if(pct>=100)show(cur+1);
+  }
   requestAnimationFrame(tick);
 })();
 
