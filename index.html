@@ -10,7 +10,7 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
 
 /* ───────── SLIDESHOW ───────── */
 .ss{position:fixed;inset:0;}
-.slide{position:absolute;inset:0;opacity:0;transition:opacity 1.4s ease;z-index:1;}
+.slide{position:absolute;inset:0;opacity:0;transition:opacity 0.8s ease;z-index:1;}
 .slide.active{opacity:1;z-index:10;}
 
 /* ───────── LOGO SLIDE ───────── */
@@ -52,9 +52,8 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
 
 /* ───────── ITEM SLIDE (full-screen photo) ───────── */
 .s-item{align-items:flex-end;justify-content:flex-start;}
-.item-photo{position:absolute;inset:-200px;background-size:cover;background-position:center;z-index:1;}
-.slide.active .item-photo{animation:kb 8s ease-out both;}
-@keyframes kb{0%{transform:scale(0.65);}100%{transform:scale(1.1);}}
+.item-photo{position:absolute;inset:0;background-size:cover;background-position:center;z-index:1;}
+.slide.active .item-photo{}
 
 .item-grad{position:absolute;inset:0;z-index:2;
   background:
@@ -116,11 +115,7 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
   position:absolute;inset:-60px;
   background-size:cover;background-position:center top;
 }
-.slide.active .wisdom-portrait{animation:wisdomKb 12s ease-in-out both;}
-@keyframes wisdomKb{
-  0%{transform:scale(1.12);}
-  100%{transform:scale(1.0);}
-}
+.slide.active .wisdom-portrait{}
 .wisdom-portrait-grad{
   position:absolute;inset:0;z-index:1;
   background:linear-gradient(to left,#000 0%,rgba(0,0,0,0.55) 25%,transparent 65%);
@@ -192,7 +187,7 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
 }
 .qr-reward{font-family:'Playfair Display';font-size:clamp(17px,2.1vw,28px);color:#C9A96E;opacity:0;}
 
-/* Flying QR boxes */
+/* Bouncing QR boxes (same as TV1) */
 .qr-flyer{
   position:absolute;top:0;left:0;background:#fff;border-radius:16px;padding:14px;
   width:clamp(130px,13vw,190px);
@@ -201,9 +196,9 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
   opacity:0;transition:opacity .6s ease;pointer-events:none;
   will-change:transform;backface-visibility:hidden;
 }
+.s-qr.active .qr-flyer{opacity:1;}
 .qr-flyer img{width:100%;display:block;border-radius:4px;}
 .qr-flyer-label{font-size:10px;letter-spacing:4px;color:#555;text-transform:uppercase;font-family:'Inter',sans-serif;}
-.s-qr.active .qr-flyer{opacity:1;}
 
 .slide.active .qr-tag{animation:up .8s ease .2s both;}
 .slide.active .qr-title{animation:up 1s ease .4s both;}
@@ -1298,6 +1293,15 @@ let cur = 0, t0 = Date.now(), paused = false;
 
 assignWisdomQuotes();
 
+/* ── Init lazy load: store bg refs, load first few ── */
+slides.forEach(s => {
+  const photo = s.querySelector('.item-photo, .wisdom-portrait');
+  if (photo && photo.style.backgroundImage) {
+    photo.dataset.bg = photo.style.backgroundImage.replace(/url\(['"]?|['"]?\)/g,'');
+  }
+});
+lazyLoad();
+
 /* ── QR Taglines (random pick each visit) ── */
 const QR_TAGLINES = [
   "You chose us for your evening. We will never forget that.",
@@ -1406,35 +1410,52 @@ function nextQRTagline() {
   return qrTaglineQueue.pop();
 }
 
-/* ── QR Bounce Animation (multi-slide) ── */
-let qrRaf = null;
-const qrPos = [
-  { x:0, y:0, vx:2.4, vy:1.9 },
-  { x:0, y:0, vx:-2.1, vy:2.5 },
-];
-
-function startQRBounce() {
-  if (qrRaf) cancelAnimationFrame(qrRaf);
-  const slide = slides[cur];
-  const sw = slide.offsetWidth, sh = slide.offsetHeight;
-  qrPos[0].x = sw * 0.12; qrPos[0].y = sh * 0.52;
-  qrPos[1].x = sw * 0.62; qrPos[1].y = sh * 0.58;
-  function frame() {
-    if (!slides[cur].classList.contains('s-qr')) { qrRaf = null; return; }
-    const flyers = slides[cur].querySelectorAll('.qr-flyer');
-    qrPos.forEach((b, i) => {
-      const el = flyers[i]; if (!el) return;
-      const bw = el.offsetWidth, bh = el.offsetHeight;
-      b.x += b.vx; b.y += b.vy;
-      if (b.x <= 0)       { b.x = 0;      b.vx =  Math.abs(b.vx); }
-      if (b.y <= 0)       { b.y = 0;      b.vy =  Math.abs(b.vy); }
-      if (b.x + bw >= sw) { b.x = sw-bw;  b.vx = -Math.abs(b.vx); }
-      if (b.y + bh >= sh) { b.y = sh-bh;  b.vy = -Math.abs(b.vy); }
-      el.style.transform = `translate3d(${b.x}px,${b.y}px,0)`;
+/* ── QR Bounce (same as TV1) ── */
+let qrRaf=null;
+const qrPos=[{x:0,y:0,vx:120,vy:95},{x:0,y:0,vx:-105,vy:125}];
+function startQRBounce(){
+  if(qrRaf)cancelAnimationFrame(qrRaf);
+  const slide=slides[cur];
+  const sw=slide.offsetWidth, sh=slide.offsetHeight;
+  const flyers=slide.querySelectorAll('.qr-flyer');
+  if(!flyers.length)return;
+  const bw=flyers[0].offsetWidth, bh=flyers[0].offsetHeight;
+  qrPos[0].x=sw*0.12; qrPos[0].y=sh*0.52;
+  qrPos[1].x=sw*0.62; qrPos[1].y=sh*0.58;
+  let lastT=performance.now();
+  function frame(now){
+    if(!slides[cur].classList.contains('s-qr')){qrRaf=null;return;}
+    const dt=Math.min((now-lastT)/1000,0.05);
+    lastT=now;
+    qrPos.forEach((b,i)=>{
+      const el=flyers[i]; if(!el)return;
+      b.x+=b.vx*dt; b.y+=b.vy*dt;
+      if(b.x<=0){b.x=0;b.vx=Math.abs(b.vx);}
+      if(b.y<=0){b.y=0;b.vy=Math.abs(b.vy);}
+      if(b.x+bw>=sw){b.x=sw-bw;b.vx=-Math.abs(b.vx);}
+      if(b.y+bh>=sh){b.y=sh-bh;b.vy=-Math.abs(b.vy);}
+      el.style.transform=`translate3d(${b.x|0}px,${b.y|0}px,0)`;
     });
-    qrRaf = requestAnimationFrame(frame);
+    qrRaf=requestAnimationFrame(frame);
   }
-  frame();
+  qrRaf=requestAnimationFrame(frame);
+}
+
+/* ── Lazy Load: load nearby slides, unload far ones ── */
+function lazyLoad() {
+  slides.forEach((s, idx) => {
+    const dist = Math.min(Math.abs(idx - cur), slides.length - Math.abs(idx - cur));
+    const photo = s.querySelector('.item-photo, .wisdom-portrait');
+    if (!photo || !photo.dataset.bg) return;
+    if (dist <= 2) {
+      const current = photo.style.backgroundImage;
+      if (!current || current === 'none') {
+        photo.style.backgroundImage = "url('" + photo.dataset.bg + "')";
+      }
+    } else if (dist > 5) {
+      photo.style.backgroundImage = 'none';
+    }
+  });
 }
 
 function dur(s) {
@@ -1456,6 +1477,7 @@ function show(i) {
   slides[cur].classList.add('active');
   t0 = Date.now();
   bar.style.width = '0%';
+  lazyLoad();
   if (slides[cur].classList.contains('s-qr')) {
     slides[cur].querySelector('.qr-tagline').textContent = nextQRTagline();
     setTimeout(startQRBounce, 400);
