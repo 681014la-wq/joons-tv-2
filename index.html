@@ -194,11 +194,12 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
 
 /* Flying QR boxes */
 .qr-flyer{
-  position:absolute;background:#fff;border-radius:16px;padding:14px;
+  position:absolute;top:0;left:0;background:#fff;border-radius:16px;padding:14px;
   width:clamp(130px,13vw,190px);
   display:flex;flex-direction:column;align-items:center;gap:8px;
   box-shadow:0 8px 40px rgba(0,0,0,0.7);z-index:5;
   opacity:0;transition:opacity .6s ease;pointer-events:none;
+  will-change:transform;backface-visibility:hidden;
 }
 .qr-flyer img{width:100%;display:block;border-radius:4px;}
 .qr-flyer-label{font-size:10px;letter-spacing:4px;color:#555;text-transform:uppercase;font-family:'Inter',sans-serif;}
@@ -1055,7 +1056,7 @@ html,body{width:100vw;height:100vh;overflow:hidden;background:#000;cursor:none;}
     <div class="cta-main">Dine with <span class="cta-gold">Us</span></div>
     <div class="cta-line"></div>
     <div class="cta-addr">29910 Murrieta Hot Springs Rd L<br>Murrieta, CA 92563</div>
-    <div class="cta-hours">Open Daily &nbsp;·&nbsp; Dine In &amp; Takeout</div>
+    <div class="cta-hours">Dine In &amp; Takeout</div>
     <div class="cta-brand">JooN's Sushi</div>
   </div>
 
@@ -1429,7 +1430,7 @@ function startQRBounce() {
       if (b.y <= 0)       { b.y = 0;      b.vy =  Math.abs(b.vy); }
       if (b.x + bw >= sw) { b.x = sw-bw;  b.vx = -Math.abs(b.vx); }
       if (b.y + bh >= sh) { b.y = sh-bh;  b.vy = -Math.abs(b.vy); }
-      el.style.left = b.x+'px'; el.style.top = b.y+'px';
+      el.style.transform = `translate3d(${b.x}px,${b.y}px,0)`;
     });
     qrRaf = requestAnimationFrame(frame);
   }
@@ -1465,12 +1466,17 @@ function show(i) {
 }
 
 (function tick() {
-  if (!paused) {
-    const d = dur(slides[cur]);
-    const pct = Math.min((Date.now() - t0) / d * 100, 100);
-    bar.style.width = pct + '%';
-    if (Date.now() - t0 >= d) show(cur + 1);
-  }
+  try {
+    if (!paused) {
+      const d = dur(slides[cur]);
+      const pct = Math.min((Date.now() - t0) / d * 100, 100);
+      bar.style.width = pct + '%';
+      if (Date.now() - t0 >= d) {
+        try { show(cur + 1); }
+        catch (e) { console.error('show() error:', e); t0 = Date.now(); }
+      }
+    }
+  } catch (e) { console.error('tick() error:', e); }
   requestAnimationFrame(tick);
 })();
 
